@@ -242,10 +242,28 @@ export function toExperienceLabel(level: ExperienceLevel): ExperienceLabel {
 
 function detectSkills(rawText: string): string[] {
   const normalized = sanitizeResumeText(rawText).toLowerCase();
+  const tokenSet = new Set(tokenize(rawText));
   const matched: string[] = [];
 
   for (const [skill, aliases] of Object.entries(SKILL_TAXONOMY)) {
-    if (aliases.some((alias) => normalized.includes(alias.toLowerCase()))) {
+    const hasAlias = aliases.some((alias) => {
+      const aliasLower = alias.toLowerCase().trim();
+      const aliasTokens = tokenize(aliasLower);
+
+      // For short aliases like "ai"/"ml", require exact token match to avoid false positives
+      // from words like "maintain" or "html".
+      if (aliasTokens.length === 1 && aliasTokens[0].length <= 3) {
+        return tokenSet.has(aliasTokens[0]);
+      }
+
+      if (aliasTokens.length === 1) {
+        return normalized.includes(aliasLower);
+      }
+
+      return aliasTokens.every((token) => tokenSet.has(token));
+    });
+
+    if (hasAlias) {
       matched.push(skill);
     }
   }
