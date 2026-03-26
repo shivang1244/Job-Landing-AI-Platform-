@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
 
   const experienceLevel = normalizeLevel((body as { experienceLevel?: string }).experienceLevel, resume.experienceLevel);
   const requestedDomain = (body as { domain?: string }).domain?.trim() ?? "";
+  const manualSkillMode = requestedDomain.length > 0;
   const effectiveDomain =
     requestedDomain ||
     resume.parsedSkills
@@ -70,13 +71,15 @@ export async function POST(request: NextRequest) {
       .join(" ")
       .trim() ||
     "ai";
+  const effectiveSkills = manualSkillMode ? requestedDomain.split(/\s+/).filter(Boolean) : resume.parsedSkills;
+  const effectiveRoles = manualSkillMode ? [] : resume.parsedRoles;
 
   const seedJobs = generateSeedJobs({
     location,
     country,
     domain: effectiveDomain,
-    resumeSkills: resume.parsedSkills,
-    resumeRoles: resume.parsedRoles,
+    resumeSkills: effectiveSkills,
+    resumeRoles: effectiveRoles,
     experienceLevel,
     postingWindowDays,
     count: appendResults ? 120 : 80
@@ -95,8 +98,8 @@ export async function POST(request: NextRequest) {
     location,
     country,
     domain: effectiveDomain,
-    resumeSkills: resume.parsedSkills,
-    resumeRoles: resume.parsedRoles,
+    resumeSkills: effectiveSkills,
+    resumeRoles: effectiveRoles,
     experienceLevel,
     postingWindowDays,
     count: appendResults ? 80 : 50
@@ -109,13 +112,15 @@ export async function POST(request: NextRequest) {
     const existing = byApplyUrl.get(generated.applyUrl);
     byApplyUrl.set(generated.applyUrl, existing ? { ...generated, id: existing.id } : generated);
   }
+  // In replace mode, keep only current run jobs so old stale jobs are never reused.
   db.jobs = [...byApplyUrl.values()];
   const persistedJobs = generatedJobs
     .map((job) => byApplyUrl.get(job.applyUrl))
     .filter((job): job is NonNullable<typeof job> => Boolean(job));
 
   const freshMatches = persistedJobs.map((job) => {
-    const fit = computeFitScore(resume.rawText, job, experienceLevel);
+    const rankingProfile = manualSkillMode ? effectiveDomain : resume.rawText;
+    const fit = computeFitScore(rankingProfile, job, experienceLevel);
     return {
       id: createId("match"),
       userId,
