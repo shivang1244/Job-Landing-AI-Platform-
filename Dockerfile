@@ -16,7 +16,7 @@ FROM node:20-bookworm-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=7860
 ENV HOSTNAME=0.0.0.0
 
 COPY --from=builder /app/apps/web/.next/standalone ./
@@ -24,6 +24,6 @@ COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
 COPY start-hf.sh /app/start-hf.sh
 RUN chmod +x /app/start-hf.sh
 
-EXPOSE 3000
+EXPOSE 7860
 
 CMD ["/app/start-hf.sh"]

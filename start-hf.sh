@@ -2,6 +2,8 @@
 set -eu
 
 echo "HF startup: checking standalone server location..."
+export PORT="${PORT:-7860}"
+export HOSTNAME="${HOSTNAME:-0.0.0.0}"
 
 if [ -f /app/apps/web/server.js ]; then
   echo "HF startup: using /app/apps/web/server.js"
