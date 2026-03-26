@@ -1,0 +1,116 @@
+﻿<proposed_plan>
+## Job Landing Platform v2 (Core + 12 Conversion Features)
+
+### Summary
+- Expand the existing MVP into a full interview-conversion system: discovery, matching, ATS optimization, application execution, outreach, and outcome learning.
+- Keep prior decisions: Next.js UI/API + Python workers, OpenRouter GPT, global on-demand search, jobs from last 7 days, resume upload (PDF/DOCX), exports (Excel/CSV), Google + magic-link auth, encrypted storage.
+- Implement all 12 requested features in a single roadmap with fixed defaults, so execution can start immediately.
+
+### Implementation Changes
+1. `Application Tracker Loop`  
+- Add stage pipeline: `saved`, `applied`, `screen`, `interview`, `offer`, `rejected`, `withdrawn`.  
+- Log every stage transition with timestamp and source (`manual`, `email_detected`, `integration`).  
+- Show per-user funnel analytics by role, company, source, country, and resume variant.
+
+2. `Auto Follow-Up Engine`  
+- Create follow-up schedules at day 3, 7, 14 after apply date.  
+- Auto-cancel reminders when stage advances or reply is recorded.  
+- Provide AI-drafted follow-up messages and one-click send approval.
+
+3. `Referral Finder`  
+- For each matched job/company, find public referral paths (alumni/shared org/public profile links).  
+- Generate personalized referral outreach drafts tied to role and resume highlights.  
+- Store referral attempts and responses in the same activity timeline.
+
+4. `Interview Copilot`  
+- Generate job-specific interview pack: likely questions, STAR answer drafts, domain round questions, and 30/60/90-day plan prompts.  
+- Build answers strictly from user resume + portfolio context to avoid fabricated claims.
+
+5. `Resume Truth Guard`  
+- Add claim validation layer before exporting ATS-tailored resume/cover letter.  
+- Block unsupported additions and flag risky edits with “needs user confirmation”.  
+- Keep evidence map from each edited bullet to original resume/project signal.
+
+6. `Resume A/B Testing`  
+- Support multiple resume variants per target role family.  
+- Track application outcomes by variant to compute callback/interview rate uplift.  
+- Recommend best-performing variant per job category.
+
+7. `Skill-Gap to Action Plan`  
+- Convert JD gaps into prioritized, time-bounded action items (quick wins + medium-term).  
+- Map each gap to suggested project/task/certification evidence users can add to profile.  
+- Recompute fit score after completed items.
+
+8. `Portfolio Optimizer`  
+- Parse linked portfolio/GitHub metadata and map projects to JD keywords.  
+- Suggest project ordering, bullet rewrites, and “what to showcase first” by role type.  
+- Export a role-specific portfolio summary snippet for applications.
+
+9. `Apply-Time Optimizer`  
+- Recommend best application windows by job timezone and historical response data.  
+- Start with heuristic model, then switch to personalized predictions after enough events.  
+- Surface urgency flags for “recent posting + high fit + low applicant age”.
+
+10. `Scam/Fake Job Detection`  
+- Add risk scoring using source trust, domain quality, posting anomalies, compensation outliers, and duplicate spam patterns.  
+- Show `Low`, `Medium`, `High` risk badge and exclude `High` by default filter.  
+- Keep audit trace for why a job was flagged.
+
+11. `Compensation + Visa Filters`  
+- Add user preference profile: salary range, currency, relocation, sponsorship requirement, work authorization.  
+- Filter/rank jobs by compensation match and visa feasibility.  
+- Highlight missing compensation data and infer ranges only when confidence is sufficient.
+
+12. `Outreach CRM`  
+- Track company outreach separately from direct job applications.  
+- Store contact channel, message history, follow-up reminders, and status (`new`, `contacted`, `responded`, `closed`).  
+- Include outreach rows in dashboard and Excel/CSV exports.
+
+### Public API / Interface Additions
+- New entities: `Application`, `ApplicationEvent`, `FollowUpTask`, `ReferralLead`, `InterviewPack`, `TruthGuardResult`, `ResumeExperiment`, `SkillGapPlan`, `PortfolioRecommendation`, `ApplyTimeRecommendation`, `JobRiskAssessment`, `CompVisaPreference`, `OutreachThread`.
+- New endpoints:
+- `POST /api/applications`
+- `PATCH /api/applications/:id/stage`
+- `GET /api/analytics/funnel`
+- `POST /api/followups/generate`
+- `POST /api/followups/:id/send`
+- `GET /api/referrals?job_id=`
+- `POST /api/interview-packs/generate`
+- `POST /api/truth-guard/validate`
+- `POST /api/resume-experiments`
+- `GET /api/skill-gap/:job_id`
+- `GET /api/portfolio/optimize/:job_id`
+- `GET /api/apply-time/recommendations`
+- `GET /api/jobs/:id/risk`
+- `GET /api/jobs?salary_min=&visa_required=&risk_max=`
+- `GET /api/outreach`
+- `POST /api/outreach`
+- Queue events:
+- `application.updated`
+- `followup.due`
+- `interviewpack.generated`
+- `truthguard.failed`
+- `resumeexperiment.updated`
+- `jobrisk.scored`
+- `outreach.updated`
+
+### Test Plan
+- Resume/ATS integrity: tailored outputs never include unsupported claims when truth guard is enabled.
+- Matching quality: fit ranking remains stable and explainable with new filters enabled.
+- Funnel analytics: conversion metrics update correctly after each stage event.
+- Follow-up engine: reminders trigger at 3/7/14 days and cancel on reply/stage change.
+- Referral/outreach: leads and outreach threads persist correctly and export to Excel/CSV.
+- Interview copilot: generated packs align with job description and user experience level.
+- A/B testing: variant assignment and outcome attribution are correct and reproducible.
+- Scam detector: known suspicious patterns score high; trusted sources score low.
+- Compensation/visa filters: incompatible roles are filtered out accurately.
+- Apply-time optimizer: recommendations present with fallback heuristics when data is sparse.
+- Security/compliance: per-user isolation, encrypted resume storage, public-data-only contact enrichment.
+
+### Assumptions and Defaults
+- Compliance mode remains `public/compliant data only`; no personal email/phone scraping from restricted platforms.
+- Default high-fit highlight remains `70%`, but list shows all jobs sorted by score.
+- Searches are on-demand and include postings published within last 7 days.
+- Follow-up sending requires user approval click (drafts are automated, sending is controlled).
+- Billing stays deferred; architecture remains SaaS-ready for later Stripe subscription rollout.
+</proposed_plan>
