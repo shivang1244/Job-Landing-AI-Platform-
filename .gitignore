@@ -8,3 +8,12 @@ __pycache__/
 *.pyc
 .venv/
 apps/web/data/dev-db.json
+e2e-result.json
+e2e-error.txt
+e2e-start.log
+e2e-start.err
+ats-start.log
+ats-start.err
+start.log
+start.err
+test-resumes/

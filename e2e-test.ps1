@@ -13,6 +13,7 @@ $server = Start-Process -FilePath "cmd.exe" `
 $base = "http://127.0.0.1:$port"
 $resultPath = "C:\Users\Shivang\Documents\JOB Finder\e2e-result.json"
 $errorPath = "C:\Users\Shivang\Documents\JOB Finder\e2e-error.txt"
+$resumeInputPath = if ($env:E2E_RESUME_PATH) { $env:E2E_RESUME_PATH } else { "C:\Users\Shivang\Downloads\SHIVANG LATEST_compressed.pdf" }
 if (Test-Path $resultPath) { Remove-Item $resultPath -Force }
 if (Test-Path $errorPath) { Remove-Item $errorPath -Force }
 
@@ -40,7 +41,10 @@ try {
   $multipart = New-Object System.Net.Http.MultipartFormDataContent
   $multipart.Add((New-Object System.Net.Http.StringContent("demo-user")), "userId")
   $multipart.Add((New-Object System.Net.Http.StringContent("")), "resumeText")
-  $filePath = "C:\Users\Shivang\Downloads\SHIVANG LATEST_compressed.pdf"
+  $filePath = $resumeInputPath
+  if (-not (Test-Path $filePath)) {
+    throw "Resume file not found at $filePath. Set E2E_RESUME_PATH to a valid file."
+  }
   $bytes = [System.IO.File]::ReadAllBytes($filePath)
   $fileContent = New-Object System.Net.Http.ByteArrayContent(,$bytes)
   $fileContent.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse("application/pdf")
@@ -97,11 +101,10 @@ try {
   Invoke-RestMethod "$base/api/applications/$($createdApp.application.id)/stage" -Method Patch -ContentType "application/json" -Body $stagePayload | Out-Null
   $apps = Invoke-RestMethod "$base/api/applications?userId=demo-user" -UseBasicParsing
 
-  $originalHeader = ($uploadJson.extractedText -split "`r?`n" | Select-Object -First 5) -join " | "
-  $tailoredHeader = ($opt.recommendation.tailoredResume -split "`r?`n" | Select-Object -First 5) -join " | "
-
   [pscustomobject]@{
     home_status = "ok"
+    generated_at = (Get-Date).ToString("o")
+    resume_file = [System.IO.Path]::GetFileName($filePath)
     resume_id = $resumeId
     parsed_level = $uploadJson.resume.experienceLevel
     suggested_domain = $uploadJson.suggestedDomain
@@ -114,8 +117,6 @@ try {
     first_job_apply_url = $firstJob.applyUrl
     optimization_keyword_gap_count = @($opt.recommendation.keywordGap).Count
     truth_warning_count = @($opt.recommendation.truthGuardWarnings).Count
-    original_header_preview = $originalHeader
-    tailored_header_preview = $tailoredHeader
     original_pdf_content_type = $origPdf.Headers["Content-Type"]
     tailored_pdf_content_type = $tailoredPdf.Headers["Content-Type"]
     cover_pdf_content_type = $coverPdf.Headers["Content-Type"]

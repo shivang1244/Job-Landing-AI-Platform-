@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { ChangeEvent, useMemo, useState } from "react";
 
@@ -146,9 +146,23 @@ type Insights = {
   } | null;
 };
 
-const USER_ID = "demo-user";
-
 const DEFAULT_RESUME = "";
+const USER_ID_STORAGE_KEY = "job_finder_user_id";
+
+function getOrCreateUserId(): string {
+  if (typeof window === "undefined") {
+    return `user_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  }
+
+  const existing = window.localStorage.getItem(USER_ID_STORAGE_KEY);
+  if (existing && existing.trim()) {
+    return existing;
+  }
+
+  const generated = `user_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  window.localStorage.setItem(USER_ID_STORAGE_KEY, generated);
+  return generated;
+}
 
 function levelLabel(level: ExperienceLevel): string {
   if (level === "level0") {
@@ -184,6 +198,7 @@ async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export default function HomePage() {
+  const [sessionUserId] = useState(getOrCreateUserId);
   const [resumeText, setResumeText] = useState(DEFAULT_RESUME);
   const [fileName, setFileName] = useState("resume.txt");
   const [resume, setResume] = useState<Resume | null>(null);
@@ -249,9 +264,8 @@ export default function HomePage() {
 
       if (selectedFile) {
         const form = new FormData();
-        form.append("userId", USER_ID);
+        form.append("userId", sessionUserId);
         form.append("file", selectedFile);
-        form.append("resumeText", resumeText);
 
         data = await jsonFetch<ResumeUploadResult>("/api/resume/upload", {
           method: "POST",
@@ -261,7 +275,7 @@ export default function HomePage() {
         data = await jsonFetch<ResumeUploadResult>("/api/resume/upload", {
           method: "POST",
           body: JSON.stringify({
-            userId: USER_ID,
+            userId: sessionUserId,
             fileName,
             resumeText
           })
@@ -270,10 +284,13 @@ export default function HomePage() {
 
       setResume(data.resume);
       setResumeText(data.extractedText);
-
-      if (!domain.trim() && data.suggestedDomain.trim()) {
-        setDomain(data.suggestedDomain);
-      }
+      setDomain(data.suggestedDomain.trim());
+      setJobs([]);
+      setJobsNotice("");
+      setSelectedJob(null);
+      setOptimization(null);
+      setInsights(null);
+      setAtsLab(null);
 
       setStatus(
         `Resume ready: ${data.resume.fileName} | ${levelLabel(data.resume.experienceLevel)} | ${data.resume.parsedYears} year(s) detected`
@@ -298,7 +315,7 @@ export default function HomePage() {
       const data = await jsonFetch<AtsLabResult>("/api/ats/analyze", {
         method: "POST",
         body: JSON.stringify({
-          userId: USER_ID,
+          userId: sessionUserId,
           resumeId: resume?.id,
           resumeText
         })
@@ -329,7 +346,7 @@ export default function HomePage() {
       const data = await jsonFetch<AtsLabResult>("/api/ats/analyze", {
         method: "POST",
         body: JSON.stringify({
-          userId: USER_ID,
+          userId: sessionUserId,
           resumeId: resume?.id,
           resumeText,
           jobDescription: customJd,
@@ -365,7 +382,7 @@ export default function HomePage() {
       await jsonFetch("/api/search/run", {
         method: "POST",
         body: JSON.stringify({
-          userId: USER_ID,
+          userId: sessionUserId,
           resumeId: resume.id,
           country,
           location,
@@ -396,7 +413,7 @@ export default function HomePage() {
     }
 
     const params = new URLSearchParams({
-      userId: USER_ID,
+      userId: sessionUserId,
       resumeId,
       minScore: String(minScore),
       riskMax,
@@ -418,7 +435,7 @@ export default function HomePage() {
     }
 
     const relaxedParams = new URLSearchParams({
-      userId: USER_ID,
+      userId: sessionUserId,
       resumeId,
       minScore: "0",
       riskMax: "high",
@@ -444,17 +461,17 @@ export default function HomePage() {
   }
 
   async function loadApplications() {
-    const data = await jsonFetch<{ applications: Application[] }>(`/api/applications?userId=${USER_ID}`);
+    const data = await jsonFetch<{ applications: Application[] }>(`/api/applications?userId=${sessionUserId}`);
     setApplications(data.applications);
   }
 
   async function loadOutreach() {
-    const data = await jsonFetch<{ outreach: Outreach[] }>(`/api/outreach?userId=${USER_ID}`);
+    const data = await jsonFetch<{ outreach: Outreach[] }>(`/api/outreach?userId=${sessionUserId}`);
     setOutreach(data.outreach);
   }
 
   async function loadFunnel() {
-    const data = await jsonFetch<{ byStage: Record<string, number> }>(`/api/analytics/funnel?userId=${USER_ID}`);
+    const data = await jsonFetch<{ byStage: Record<string, number> }>(`/api/analytics/funnel?userId=${sessionUserId}`);
     setFunnel(data.byStage);
   }
 
@@ -472,7 +489,7 @@ export default function HomePage() {
       const data = await jsonFetch<Optimization>(`/api/jobs/${job.id}/optimize`, {
         method: "POST",
         body: JSON.stringify({
-          userId: USER_ID,
+          userId: sessionUserId,
           resumeId: resume.id
         })
       });
@@ -495,20 +512,20 @@ export default function HomePage() {
     try {
       const [ref, interview, skillGap, portfolio, applyTime, risk] = await Promise.all([
         jsonFetch<{ referrals: { profileUrl: string; messageDraft: string }[] }>(
-          `/api/referrals?userId=${USER_ID}&jobId=${jobId}`
+          `/api/referrals?userId=${sessionUserId}&jobId=${jobId}`
         ),
         jsonFetch<{ interviewPack: Insights["interviewPack"] }>("/api/interview-packs/generate", {
           method: "POST",
-          body: JSON.stringify({ userId: USER_ID, jobId })
+          body: JSON.stringify({ userId: sessionUserId, jobId })
         }),
         jsonFetch<{ skillGapPlan: Insights["skillGapPlan"] }>(
-          `/api/skill-gap?userId=${USER_ID}&resumeId=${resume.id}&jobId=${jobId}`
+          `/api/skill-gap?userId=${sessionUserId}&resumeId=${resume.id}&jobId=${jobId}`
         ),
         jsonFetch<{ portfolioRecommendation: Insights["portfolioRecommendation"] }>(
-          `/api/portfolio/optimize/${jobId}?userId=${USER_ID}`
+          `/api/portfolio/optimize/${jobId}?userId=${sessionUserId}`
         ),
         jsonFetch<{ applyTimeRecommendation: Insights["applyTimeRecommendation"] }>(
-          `/api/apply-time/recommendations?userId=${USER_ID}&jobId=${jobId}&timezone=Asia/Calcutta`
+          `/api/apply-time/recommendations?userId=${sessionUserId}&jobId=${jobId}&timezone=Asia/Calcutta`
         ),
         jsonFetch<{ risk: string; reasons: string[] }>(`/api/jobs/${jobId}/risk`)
       ]);
@@ -534,7 +551,7 @@ export default function HomePage() {
       const data = await jsonFetch<{ application: Application }>("/api/applications", {
         method: "POST",
         body: JSON.stringify({
-          userId: USER_ID,
+          userId: sessionUserId,
           jobId,
           stage: "applied"
         })
@@ -557,7 +574,7 @@ export default function HomePage() {
       const data = await jsonFetch<{ application: Application; reused?: boolean }>("/api/applications", {
         method: "POST",
         body: JSON.stringify({
-          userId: USER_ID,
+          userId: sessionUserId,
           jobId: job.id,
           stage: "applied"
         })
@@ -584,7 +601,7 @@ export default function HomePage() {
       await jsonFetch(`/api/applications/${appId}/stage`, {
         method: "PATCH",
         body: JSON.stringify({
-          userId: USER_ID,
+          userId: sessionUserId,
           stage,
           source: "manual"
         })
@@ -606,7 +623,7 @@ export default function HomePage() {
       await jsonFetch("/api/followups/generate", {
         method: "POST",
         body: JSON.stringify({
-          userId: USER_ID,
+          userId: sessionUserId,
           applicationId
         })
       });
@@ -648,7 +665,7 @@ export default function HomePage() {
   }
 
   function exportCsv(type: "jobs" | "outreach") {
-    window.open(`/api/export?userId=${USER_ID}&type=${type}&format=csv`, "_blank", "noopener,noreferrer");
+    window.open(`/api/export?userId=${sessionUserId}&type=${type}&format=csv`, "_blank", "noopener,noreferrer");
   }
 
   function downloadPdf(type: "original_resume" | "tailored_resume" | "cover_letter") {
@@ -658,7 +675,7 @@ export default function HomePage() {
     }
 
     const params = new URLSearchParams({
-      userId: USER_ID,
+      userId: sessionUserId,
       resumeId: resume.id,
       type
     });
@@ -916,7 +933,7 @@ export default function HomePage() {
             <button className="ghost" onClick={() => void runSearch("append")} disabled={busy || !resume}>
               Search More
             </button>
-            <button className="ghost" onClick={() => void loadJobs()} disabled={busy || !resume}>
+            <button className="ghost" onClick={() => void runSearch("replace")} disabled={busy || !resume}>
               Refresh Jobs
             </button>
             <button className="secondary" onClick={() => exportCsv("jobs")}>
@@ -1111,3 +1128,4 @@ export default function HomePage() {
     </main>
   );
 }
+

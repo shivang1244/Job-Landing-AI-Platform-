@@ -6,7 +6,7 @@ export function getUserId(input: unknown): string {
     return input;
   }
 
-  return "demo-user";
+  return `guest_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
 export function saveJobsReplacingExisting(incoming: JobPosting[]) {

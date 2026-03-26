@@ -23,6 +23,13 @@ type RoleTemplate = {
   description: string;
 };
 
+type JobBoard = {
+  name: string;
+  source: string;
+  searchUrl: (query: string, location: string) => string;
+  siteUrl: string;
+};
+
 const companies: Company[] = [
   { name: "Zoho", country: "India", city: "Chennai", size: "enterprise", domain: "saas ai", careersUrl: "https://www.zoho.com/careers/", siteUrl: "https://www.zoho.com", linkedinCompanyUrl: "https://www.linkedin.com/company/zoho-corporation", tags: ["ai", "saas", "automation", "python"] },
   { name: "Freshworks", country: "India", city: "Chennai", size: "enterprise", domain: "saas automation", careersUrl: "https://www.freshworks.com/company/careers/", siteUrl: "https://www.freshworks.com", linkedinCompanyUrl: "https://www.linkedin.com/company/freshworks-inc-", tags: ["saas", "data", "analytics", "automation"] },
@@ -85,6 +92,10 @@ const companies: Company[] = [
 ];
 
 const roleTemplates: RoleTemplate[] = [
+  { title: "Software Engineer Intern", experienceLevel: "level0", tags: ["software engineering", "dsa", "javascript", "java"], description: "Entry-level software role focused on coding fundamentals, debugging, APIs, and team collaboration." },
+  { title: "Junior Software Engineer", experienceLevel: "level0", tags: ["software engineering", "backend", "frontend", "git"], description: "Fresher-friendly software role covering feature development, testing, and production support." },
+  { title: "Backend Developer", experienceLevel: "level0", tags: ["backend", "nodejs", "express", "sql"], description: "Backend-focused role involving API development, databases, and scalable service integration." },
+  { title: "Frontend Developer", experienceLevel: "level0", tags: ["frontend", "react", "javascript", "typescript"], description: "Frontend role building responsive UI, component systems, and product-facing web features." },
   { title: "Machine Learning Intern", experienceLevel: "level0", tags: ["machine learning", "python", "intern", "ai"], description: "Entry-level machine learning role focused on Python, experimentation, model evaluation, and practical project delivery." },
   { title: "AI Intern", experienceLevel: "level0", tags: ["ai", "python", "intern", "automation"], description: "Fresher-friendly AI role involving prototyping, prompt iteration, data preparation, and product experimentation." },
   { title: "Associate Data Scientist", experienceLevel: "level0", tags: ["data science", "analytics", "python", "sql"], description: "Associate data scientist role requiring analytics fundamentals, SQL, Python, and communication with business stakeholders." },
@@ -95,8 +106,70 @@ const roleTemplates: RoleTemplate[] = [
   { title: "Data Scientist", experienceLevel: "level1", tags: ["data science", "machine learning", "analytics", "sql"], description: "Hands-on data science role using experimentation, feature engineering, Python, and analytics storytelling." },
   { title: "Applied AI Engineer", experienceLevel: "level1", tags: ["generative ai", "rag", "llm", "python"], description: "Applied AI role delivering retrieval, summarization, prompt design, and user-facing AI features." },
   { title: "Computer Vision Engineer", experienceLevel: "level1", tags: ["computer vision", "opencv", "deep learning", "python"], description: "Computer vision engineering role with image pipelines, detection models, model evaluation, and deployment." },
+  { title: "Software Engineer", experienceLevel: "level1", tags: ["software engineering", "backend", "frontend", "api"], description: "General software engineering role focused on end-to-end feature delivery, quality, and maintainability." },
+  { title: "Full Stack Developer", experienceLevel: "level1", tags: ["full stack", "react", "nodejs", "sql"], description: "Full-stack role delivering frontend and backend features, API integrations, and scalable product workflows." },
+  { title: "Backend Engineer", experienceLevel: "level1", tags: ["backend", "microservices", "nodejs", "sql"], description: "Backend engineering role with service design, data modeling, and production API ownership." },
+  { title: "Frontend Engineer", experienceLevel: "level1", tags: ["frontend", "react", "nextjs", "typescript"], description: "Frontend engineering role emphasizing UX implementation, performance, and component architecture." },
   { title: "Senior AI Engineer", experienceLevel: "level2", tags: ["ai", "architecture", "mlops", "leadership"], description: "Senior AI role requiring architectural ownership, reliability, mentoring, and cross-functional delivery." },
-  { title: "Applied Scientist", experienceLevel: "level2", tags: ["research", "machine learning", "nlp", "deep learning"], description: "Research-heavy role requiring rigorous experimentation, strong math foundations, and production impact." }
+  { title: "Applied Scientist", experienceLevel: "level2", tags: ["research", "machine learning", "nlp", "deep learning"], description: "Research-heavy role requiring rigorous experimentation, strong math foundations, and production impact." },
+  { title: "Senior Software Engineer", experienceLevel: "level2", tags: ["software engineering", "architecture", "backend", "system design"], description: "Senior software role requiring architectural ownership, code quality leadership, and scalable system delivery." },
+  { title: "Tech Lead", experienceLevel: "level2", tags: ["software engineering", "leadership", "architecture", "backend"], description: "Technical leadership role guiding roadmap execution, design decisions, and cross-team delivery." }
+];
+
+const jobBoards: JobBoard[] = [
+  {
+    name: "LinkedIn Jobs",
+    source: "linkedin",
+    siteUrl: "https://www.linkedin.com/jobs",
+    searchUrl: (query, location) =>
+      `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(query)}&location=${encodeURIComponent(location || "Remote")}`
+  },
+  {
+    name: "Indeed",
+    source: "indeed",
+    siteUrl: "https://www.indeed.com",
+    searchUrl: (query, location) =>
+      `https://www.indeed.com/jobs?q=${encodeURIComponent(query)}&l=${encodeURIComponent(location || "Remote")}`
+  },
+  {
+    name: "Naukri",
+    source: "naukri",
+    siteUrl: "https://www.naukri.com",
+    searchUrl: (query, location) =>
+      `https://www.naukri.com/${encodeURIComponent(query).replace(/%20/g, "-")}-jobs-in-${encodeURIComponent(location || "india").replace(/%20/g, "-")}`
+  },
+  {
+    name: "Foundit",
+    source: "foundit",
+    siteUrl: "https://www.foundit.in",
+    searchUrl: (query, location) =>
+      `https://www.foundit.in/srp/results?query=${encodeURIComponent(query)}&locations=${encodeURIComponent(location || "India")}`
+  },
+  {
+    name: "Glassdoor",
+    source: "glassdoor",
+    siteUrl: "https://www.glassdoor.com",
+    searchUrl: (query, location) =>
+      `https://www.glassdoor.com/Job/jobs.htm?sc.keyword=${encodeURIComponent(query)}&locT=C&locId=&locKeyword=${encodeURIComponent(location || "Remote")}`
+  },
+  {
+    name: "Wellfound",
+    source: "wellfound",
+    siteUrl: "https://wellfound.com/jobs",
+    searchUrl: (query) => `https://wellfound.com/jobs?query=${encodeURIComponent(query)}`
+  },
+  {
+    name: "Hirist",
+    source: "hirist",
+    siteUrl: "https://www.hirist.com",
+    searchUrl: (query) => `https://www.hirist.com/search/${encodeURIComponent(query).replace(/%20/g, "-")}`
+  },
+  {
+    name: "Instahyre",
+    source: "instahyre",
+    siteUrl: "https://www.instahyre.com",
+    searchUrl: (query) => `https://www.instahyre.com/search-jobs/?q=${encodeURIComponent(query)}`
+  }
 ];
 
 function stableId(prefix: string, value: string): string {
@@ -312,6 +385,61 @@ export function generateOutreachCompanies(input: {
       companyType: row.company.domain,
       companySize: row.company.size
     }));
+}
+
+export function generateJobBoardSearchJobs(input: {
+  location: string;
+  country: string;
+  domain: string;
+  resumeSkills: string[];
+  resumeRoles: string[];
+  experienceLevel: ExperienceLevel;
+  postingWindowDays: number;
+  count?: number;
+}): JobPosting[] {
+  const count = input.count ?? 40;
+  const searchTokens = tokenize(`${input.domain} ${input.resumeSkills.join(" ")} ${input.resumeRoles.join(" ")}`)
+    .filter((token) => token.length > 2)
+    .slice(0, 10);
+
+  const candidateRoles = roleTemplates
+    .filter((role) => levelDistance(input.experienceLevel, role.experienceLevel) <= 1)
+    .sort((left, right) => {
+      const leftScore = overlapCount(searchTokens, left.tags);
+      const rightScore = overlapCount(searchTokens, right.tags);
+      return rightScore - leftScore;
+    })
+    .slice(0, 6);
+
+  const location = input.location || "Remote";
+  const country = input.country || "Global";
+  const jobs: JobPosting[] = [];
+
+  for (const role of candidateRoles) {
+    for (const board of jobBoards) {
+      const query = `${role.title} ${input.domain}`.trim();
+      const applyUrl = board.searchUrl(query, location);
+      jobs.push({
+        id: stableId("board_job", `${board.source}-${role.title}-${location}-${query}`),
+        source: board.source,
+        title: role.title,
+        company: board.name,
+        country,
+        location,
+        remoteType: location.toLowerCase() === "remote" ? "remote" : "hybrid",
+        postedAt: createPostedAt(0.04),
+        applyUrl,
+        companySite: board.siteUrl,
+        publicRecruiterProfiles: [],
+        visaSponsorship: "unknown",
+        experienceLevel: role.experienceLevel,
+        description: `Live board query for ${role.title}. Keywords: ${searchTokens.slice(0, 6).join(", ")}.`,
+        risk: "low"
+      });
+    }
+  }
+
+  return jobs.slice(0, count);
 }
 
 export function createDefaultInterviewPack(jobTitle: string, company: string) {

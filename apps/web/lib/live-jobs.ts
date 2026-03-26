@@ -123,7 +123,7 @@ async function fetchJson<T>(url: string): Promise<T | null> {
       headers: {
         "User-Agent": "job-landing-platform/0.1"
       },
-      next: { revalidate: 3600 }
+      cache: "no-store"
     });
 
     if (!response.ok) {

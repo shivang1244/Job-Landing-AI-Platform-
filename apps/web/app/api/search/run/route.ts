@@ -5,7 +5,7 @@ import { getUserId } from "@/lib/logic";
 import { computeFitScore, isRecentWithinDays } from "@/lib/matching";
 import { ExperienceLevel } from "@/lib/types";
 import { fetchLiveJobs } from "@/lib/live-jobs";
-import { generateOutreachCompanies, generateSeedJobs } from "@/lib/seeds";
+import { generateJobBoardSearchJobs, generateOutreachCompanies, generateSeedJobs } from "@/lib/seeds";
 
 function normalizeLevel(input: unknown, resumeLevel: ExperienceLevel): ExperienceLevel {
   if (input === "level0" || input === "level1" || input === "level2") {
@@ -91,9 +91,20 @@ export async function POST(request: NextRequest) {
     limit: appendResults ? 60 : 30
   }).catch(() => []);
 
-  const generatedJobs = [...seedJobs, ...liveJobs].filter((job) => !excludeJobIds.has(job.id));
+  const boardJobs = generateJobBoardSearchJobs({
+    location,
+    country,
+    domain: effectiveDomain,
+    resumeSkills: resume.parsedSkills,
+    resumeRoles: resume.parsedRoles,
+    experienceLevel,
+    postingWindowDays,
+    count: appendResults ? 80 : 50
+  });
 
-  const byApplyUrl = new Map(db.jobs.map((job) => [job.applyUrl, job]));
+  const generatedJobs = [...seedJobs, ...liveJobs, ...boardJobs].filter((job) => !excludeJobIds.has(job.id));
+
+  const byApplyUrl = new Map((appendResults ? db.jobs : []).map((job) => [job.applyUrl, job]));
   for (const generated of generatedJobs) {
     const existing = byApplyUrl.get(generated.applyUrl);
     byApplyUrl.set(generated.applyUrl, existing ? { ...generated, id: existing.id } : generated);
@@ -118,7 +129,17 @@ export async function POST(request: NextRequest) {
   });
 
   if (!appendResults) {
-    db.matches = db.matches.filter((m) => !(m.userId === userId && m.resumeId === resumeId));
+    db.matches = db.matches.filter((m) => m.userId !== userId);
+    db.recommendations = db.recommendations.filter((item) => item.userId !== userId);
+    db.resumeVariants = db.resumeVariants.filter((item) => item.userId !== userId);
+    db.resumeExperiments = db.resumeExperiments.filter((item) => item.userId !== userId);
+    db.referrals = db.referrals.filter((item) => item.userId !== userId);
+    db.interviewPacks = db.interviewPacks.filter((item) => item.userId !== userId);
+    db.truthGuardResults = db.truthGuardResults.filter((item) => item.userId !== userId);
+    db.skillGapPlans = db.skillGapPlans.filter((item) => item.userId !== userId);
+    db.portfolioRecommendations = db.portfolioRecommendations.filter((item) => item.userId !== userId);
+    db.applyTimeRecommendations = db.applyTimeRecommendations.filter((item) => item.userId !== userId);
+    db.outreachThreads = db.outreachThreads.filter((item) => item.userId !== userId);
     db.matches.push(...freshMatches);
   } else {
     const existingKeys = new Set(

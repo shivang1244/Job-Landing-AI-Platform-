@@ -26,12 +26,14 @@ async function parseRequest(request: NextRequest): Promise<UploadPayload> {
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
       const extracted = (await extractResumeText(file.name, buffer)).trim();
-      const mergedText = extracted || textField;
+      if (!extracted) {
+        throw new Error("Could not extract text from uploaded file. Please re-upload or paste resume text manually.");
+      }
 
       return {
         userId,
         fileName: file.name,
-        resumeText: mergedText
+        resumeText: extracted
       };
     }
 
@@ -83,6 +85,35 @@ export async function POST(request: NextRequest) {
   };
 
   const db = readDb();
+  const userResumeIds = new Set(db.resumes.filter((item) => item.userId === payload.userId).map((item) => item.id));
+
+  // Keep runtime behavior fresh per upload by removing previous user state.
+  db.resumes = db.resumes.filter((item) => item.userId !== payload.userId);
+  db.matches = db.matches.filter((item) => item.userId !== payload.userId && !userResumeIds.has(item.resumeId));
+  db.recommendations = db.recommendations.filter(
+    (item) => item.userId !== payload.userId && !userResumeIds.has(item.resumeId)
+  );
+  const removedVariantIds = new Set(
+    db.resumeVariants
+      .filter((item) => item.userId === payload.userId || userResumeIds.has(item.resumeId))
+      .map((item) => item.id)
+  );
+  db.resumeVariants = db.resumeVariants.filter(
+    (item) => item.userId !== payload.userId && !userResumeIds.has(item.resumeId)
+  );
+  db.resumeExperiments = db.resumeExperiments.filter(
+    (item) => item.userId !== payload.userId && !removedVariantIds.has(item.resumeVariantId)
+  );
+  db.applications = db.applications.filter((item) => item.userId !== payload.userId);
+  db.followUps = db.followUps.filter((item) => item.userId !== payload.userId);
+  db.referrals = db.referrals.filter((item) => item.userId !== payload.userId);
+  db.interviewPacks = db.interviewPacks.filter((item) => item.userId !== payload.userId);
+  db.truthGuardResults = db.truthGuardResults.filter((item) => item.userId !== payload.userId);
+  db.skillGapPlans = db.skillGapPlans.filter((item) => item.userId !== payload.userId);
+  db.portfolioRecommendations = db.portfolioRecommendations.filter((item) => item.userId !== payload.userId);
+  db.applyTimeRecommendations = db.applyTimeRecommendations.filter((item) => item.userId !== payload.userId);
+  db.outreachThreads = db.outreachThreads.filter((item) => item.userId !== payload.userId);
+
   db.resumes.push(resume);
   writeDb(db);
 

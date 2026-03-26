@@ -92,6 +92,12 @@ const SKILL_TAXONOMY: Record<string, string[]> = {
   "computer vision": ["computer vision", "opencv", "yolov5", "image detection", "object detection", "video"],
   "data science": ["data science", "analytics", "statistics", "sql", "power bi", "tableau"],
   "mlops": ["mlops", "deployment", "monitoring", "docker", "kubernetes", "pipeline", "pipelines"],
+  "software engineering": ["software engineer", "software engineering", "sde", "system design", "oop", "dsa"],
+  "backend engineering": ["backend", "node.js", "nodejs", "express", "java spring", "spring boot", "rest api", "microservices"],
+  "frontend engineering": ["frontend", "react", "next.js", "nextjs", "javascript", "typescript", "html", "css"],
+  "full stack development": ["full stack", "fullstack", "mern", "mean", "web development"],
+  "cloud": ["aws", "azure", "gcp", "cloud", "serverless"],
+  "devops": ["devops", "ci/cd", "github actions", "jenkins", "terraform"],
   "python": ["python"],
   "java": ["java"],
   "sql": ["sql"]
@@ -108,7 +114,15 @@ const ROLE_PATTERNS = [
   "mlops engineer",
   "ai intern",
   "generative ai intern",
-  "associate data scientist"
+  "associate data scientist",
+  "software engineer",
+  "backend engineer",
+  "frontend engineer",
+  "full stack developer",
+  "fullstack developer",
+  "web developer",
+  "application developer",
+  "sde"
 ];
 
 const LOCATION_HINTS = [
@@ -285,8 +299,21 @@ function detectDomainHints(skills: string[]): string[] {
       "data science"
     ].includes(skill)
   );
+  const hasSoftwareDomain = skills.some((skill) =>
+    [
+      "software engineering",
+      "backend engineering",
+      "frontend engineering",
+      "full stack development",
+      "cloud",
+      "devops"
+    ].includes(skill)
+  );
 
   const preferredOrder = [
+    ...(hasSoftwareDomain
+      ? ["software engineering", "backend engineering", "frontend engineering", "full stack development", "cloud", "devops"]
+      : []),
     "generative ai",
     "machine learning",
     "artificial intelligence",
@@ -294,10 +321,15 @@ function detectDomainHints(skills: string[]): string[] {
     "computer vision",
     "mlops",
     "data science",
-    ...(hasAIDomain ? [] : ["python", "sql"])
+    ...(hasAIDomain || hasSoftwareDomain ? [] : ["python", "java", "sql"])
   ];
 
-  return preferredOrder.filter((item) => skills.includes(item)).slice(0, 5);
+  const matched = preferredOrder.filter((item) => skills.includes(item)).slice(0, 5);
+  if (matched.length > 0) {
+    return matched;
+  }
+
+  return skills.slice(0, 4);
 }
 
 export function parseResumeText(rawText: string) {
