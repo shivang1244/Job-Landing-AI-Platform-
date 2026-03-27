@@ -345,12 +345,16 @@ export function generateSeedJobs(input: {
 
 export function generateOutreachCompanies(input: {
   domain: string;
+  resumeSkills: string[];
+  resumeRoles: string[];
   country: string;
   location: string;
   experienceLevel: ExperienceLevel;
   count?: number;
 }) {
-  const searchTokens = tokenize(input.domain).slice(0, 12);
+  const searchTokens = tokenize(`${input.domain} ${input.resumeSkills.join(" ")} ${input.resumeRoles.join(" ")}`)
+    .filter((token) => token.length > 2)
+    .slice(0, 16);
   const countryFilter = input.country.toLowerCase();
   const locationFilter = input.location.toLowerCase();
   const count = input.count ?? 50;
@@ -359,17 +363,19 @@ export function generateOutreachCompanies(input: {
     .filter((company) => matchesCountry(company, countryFilter))
     .filter((company) => matchesLocation(company, locationFilter))
     .map((company) => {
-      const matchCount = overlapCount(searchTokens, company.tags);
+      const companySignals = [...company.tags, ...tokenize(company.domain)];
+      const matchCount = overlapCount(searchTokens, companySignals);
+      const sizeBoost = company.size === "startup" ? 1 : company.size === "medium" ? 0.6 : 0.3;
 
       return {
         company,
-        matchCount
+        matchCount,
+        score: matchCount + sizeBoost
       };
     })
-    .filter((row) => row.matchCount > 0 || searchTokens.length === 0)
     .sort((left, right) => {
-      if (right.matchCount !== left.matchCount) {
-        return right.matchCount - left.matchCount;
+      if (right.score !== left.score) {
+        return right.score - left.score;
       }
 
       return left.company.name.localeCompare(right.company.name);

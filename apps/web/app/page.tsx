@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { ChangeEvent, useMemo, useState } from "react";
+import { ChangeEvent, useMemo, useRef, useState } from "react";
 
 type ExperienceLevel = "level0" | "level1" | "level2";
 type ExperiencePreference = "auto" | ExperienceLevel;
@@ -198,6 +198,7 @@ async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export default function HomePage() {
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const [sessionUserId] = useState(getOrCreateUserId);
   const [resumeText, setResumeText] = useState(DEFAULT_RESUME);
   const [fileName, setFileName] = useState("resume.txt");
@@ -234,6 +235,8 @@ export default function HomePage() {
   async function handleResumeFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) {
+      setSelectedFile(null);
+      setSelectedUpload("");
       return;
     }
 
@@ -646,7 +649,13 @@ export default function HomePage() {
       });
 
       setResume(null);
+      setResumeText(DEFAULT_RESUME);
+      setFileName("resume.txt");
+      setSelectedUpload("");
+      setSelectedFile(null);
       setJobs([]);
+      setJobsNotice("");
+      setSelectedJob(null);
       setOptimization(null);
       setApplications([]);
       setOutreach([]);
@@ -656,6 +665,10 @@ export default function HomePage() {
       setCustomJd("");
       setCustomJobTitle("");
       setCustomCompany("");
+      setDomain("");
+      if (uploadInputRef.current) {
+        uploadInputRef.current.value = "";
+      }
       setStatus("Demo data reset. Upload resume and run a fresh search.");
     } catch (error) {
       setStatus(`Reset failed: ${(error as Error).message}`);
@@ -830,6 +843,7 @@ export default function HomePage() {
           <label>Upload Resume File (TXT / PDF / DOC / DOCX)</label>
           <div className="upload-zone">
             <input
+              ref={uploadInputRef}
               type="file"
               accept=".txt,.md,.pdf,.doc,.docx,text/plain,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               onChange={(event) => void handleResumeFileChange(event)}

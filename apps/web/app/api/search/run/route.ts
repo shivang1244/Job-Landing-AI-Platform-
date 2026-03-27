@@ -163,6 +163,8 @@ export async function POST(request: NextRequest) {
 
   const outreachList = generateOutreachCompanies({
     domain: effectiveDomain,
+    resumeSkills: effectiveSkills,
+    resumeRoles: effectiveRoles,
     country,
     location,
     experienceLevel,
